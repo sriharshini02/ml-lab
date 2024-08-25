@@ -1,23 +1,15 @@
-# Use an official Python runtime as a parent image
+# Use the base Python image
 FROM python:3.12
 
-# Install system dependencies
+# Install system dependencies including sqlite3
 RUN apt-get update && \
     apt-get install -y \
     sqlite3 \
     libsqlite3-dev \
     ffmpeg
 
-# Install a more recent version of sqlite3 if needed
-RUN wget https://www.sqlite.org/2024/sqlite-autoconf-3390200.tar.gz && \
-    tar xzf sqlite-autoconf-3390200.tar.gz && \
-    cd sqlite-autoconf-3390200 && \
-    ./configure && \
-    make && \
-    make install && \
-    cd .. && \
-    rm -rf sqlite-autoconf-3390200 && \
-    rm sqlite-autoconf-3390200.tar.gz
+# Install pysqlite3-binary to ensure the correct version of SQLite
+RUN pip install pysqlite3-binary
 
 # Set the working directory in the container
 WORKDIR /app
