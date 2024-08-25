@@ -11,9 +11,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from langchain.schema import Document
 from dotenv import load_dotenv
 
-# Load API key from .env file
-load_dotenv('geminikey.env')
-api_key = os.getenv('GEMINI_API_KEY')
+api_key = 'AIzaSyDG1Key2SaOs73YXzBQyZ0kxUKH-Liosis'
 
 if not api_key:
     st.error("API key for Gemini is not set. Please set the GEMINI_API_KEY environment variable.")
