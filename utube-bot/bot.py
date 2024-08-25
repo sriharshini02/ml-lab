@@ -31,6 +31,11 @@ def get_video_id(url):
     return video_id
 
 
+import yt_dlp
+from yt_dlp.utils import DownloadError
+from pydub import AudioSegment
+import os
+
 def get_audio(video_url, output_path='audio.mp3'):
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -42,9 +47,14 @@ def get_audio(video_url, output_path='audio.mp3'):
         'outtmpl': output_path,
         'quiet': True,
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
-    return output_path
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([video_url])
+        return output_path
+    except DownloadError as e:
+        print(f"DownloadError: {e}")
+        return None
+
 
 def get_transcript_or_audio(video_url, file_path='transcription.txt'):
     try:
