@@ -9,7 +9,6 @@ from langchain.memory import ConversationBufferMemory
 import os
 from youtube_transcript_api import YouTubeTranscriptApi
 from langchain.schema import Document
-from dotenv import load_dotenv
 
 api_key = 'AIzaSyDG1Key2SaOs73YXzBQyZ0kxUKH-Liosis'
 
@@ -29,19 +28,29 @@ def get_video_id(url):
         video_id = url.split("watch?v=")[1].split("&")[0]
     return video_id
 
+from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+
 def get_transcript(video_url, file_path='transcription.txt'):
     video_id = get_video_id(video_url)
-    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-    text = " ".join([segment["text"] for segment in transcript_list]).strip()
-    with open(file_path, 'w') as file:
-        file.write(text)
-    return file_path
+    try:
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        text = " ".join([segment["text"] for segment in transcript_list]).strip()
+        with open(file_path, 'w') as file:
+            file.write(text)
+        return file_path
+    except TranscriptsDisabled:
+        return None  # or you can return a message indicating transcripts are disabled
+    except NoTranscriptFound:
+        return None  # or handle it differently if you like
+
 
 def generate_response(user_input, file_path=None):
     global chat_history
     if not user_input:
-        return "No user input provided."
+        return "No user input provided.", None
+    
     if file_path and os.path.exists(file_path):
+        # Existing logic to handle the transcript and generate a response
         with open(file_path, 'r') as file:
             transcription = file.read()
 
@@ -55,9 +64,10 @@ def generate_response(user_input, file_path=None):
             embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
             db = Chroma.from_documents(documents, embeddings)
         except Exception as e:
-            return f"Error during vector store initialization: {str(e)}"
+            return f"Error during vector store initialization: {str(e)}", file_path
 
         retrieved_results = db.similarity_search(user_input)
+
         history_context = "\n".join([f"User: {entry['user']}\nAssistant: {entry['assistant']}" for entry in chat_history])
 
         llm = ChatGoogleGenerativeAI(
@@ -81,7 +91,12 @@ def generate_response(user_input, file_path=None):
 
         chat_history.append({"user": user_input, "assistant": output})
         return output
+
     else:
+        # Handle cases where the transcript is not available
+        if not file_path:
+            return "Transcripts are disabled for this video, or no transcript was found.", None
+        
         history_context = "\n".join([f"User: {entry['user']}\nAssistant: {entry['assistant']}" for entry in chat_history])
 
         llm = ChatGoogleGenerativeAI(
@@ -103,6 +118,7 @@ def generate_response(user_input, file_path=None):
         output = llm_chain.run({"history": history_context, "question": user_input})
         chat_history.append({"user": user_input, "assistant": output})
         return output
+
 
 # Streamlit UI
 st.title("YouTube Video Chat")
