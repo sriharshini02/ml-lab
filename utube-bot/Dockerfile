@@ -8,6 +8,17 @@ RUN apt-get update && \
     libsqlite3-dev \
     ffmpeg
 
+# Install a more recent version of sqlite3 if needed
+RUN wget https://www.sqlite.org/2024/sqlite-autoconf-3390200.tar.gz && \
+    tar xzf sqlite-autoconf-3390200.tar.gz && \
+    cd sqlite-autoconf-3390200 && \
+    ./configure && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf sqlite-autoconf-3390200 && \
+    rm sqlite-autoconf-3390200.tar.gz
+
 # Set the working directory in the container
 WORKDIR /app
 
