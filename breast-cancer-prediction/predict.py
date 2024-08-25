@@ -3,20 +3,18 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.linear_model import LogisticRegression
 import pandas as pd
 
-# Load the breast cancer dataset
 data = load_breast_cancer()
-X = pd.DataFrame(data.data, columns=data.feature_names)
+
+selected_features = ['mean radius', 'mean texture', 'mean perimeter', 'mean area', 'mean smoothness']
+X = pd.DataFrame(data.data, columns=data.feature_names)[selected_features]
 y = data.target
 
-# Train the model
 clf = LogisticRegression(max_iter=5000)
 clf.fit(X, y)
 
-# Sidebar for user input features
 def user_input_features():
-    # Adjust sliders to match the number of features (30 in this case)
     feature_input = {}
-    for feature in X.columns:
+    for feature in selected_features:
         feature_input[feature] = st.sidebar.slider(feature, float(X[feature].min()), float(X[feature].max()), float(X[feature].mean()))
 
     features = pd.DataFrame(feature_input, index=[0])
