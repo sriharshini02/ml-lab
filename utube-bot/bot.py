@@ -9,6 +9,8 @@ from langchain.memory import ConversationBufferMemory
 import os
 from youtube_transcript_api import YouTubeTranscriptApi
 from langchain.schema import Document
+import yt_dlp
+from pydub import AudioSegment
 
 api_key = 'AIzaSyDG1Key2SaOs73YXzBQyZ0kxUKH-Liosis'
 
@@ -28,20 +30,34 @@ def get_video_id(url):
         video_id = url.split("watch?v=")[1].split("&")[0]
     return video_id
 
-from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 
-def get_transcript(video_url, file_path='transcription.txt'):
-    video_id = get_video_id(video_url)
+def get_audio(video_url, output_path='audio.mp3'):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'outtmpl': output_path,
+        'quiet': True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([video_url])
+    return output_path
+
+def get_transcript_or_audio(video_url, file_path='transcription.txt'):
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        transcript_list = YouTubeTranscriptApi.get_transcript(get_video_id(video_url))
         text = " ".join([segment["text"] for segment in transcript_list]).strip()
         with open(file_path, 'w') as file:
             file.write(text)
         return file_path
-    except TranscriptsDisabled:
-        return None  # or you can return a message indicating transcripts are disabled
-    except NoTranscriptFound:
-        return None  # or handle it differently if you like
+    except Exception as e:
+        print(f"Error: {e}")
+        print("Transcripts are disabled, downloading audio instead.")
+        audio_file_path = get_audio(video_url)
+        return audio_file_path
 
 
 def generate_response(user_input, file_path=None):
@@ -128,6 +144,6 @@ youtube_url = st.text_input("YouTube URL (Optional)")
 question = st.text_input("Question")
 
 if st.button("Submit"):
-    file_path = get_transcript(youtube_url) if youtube_url else None
+    file_path = get_transcript_or_audio(youtube_url) if youtube_url else None
     response = generate_response(question, file_path)
     st.write(response)
